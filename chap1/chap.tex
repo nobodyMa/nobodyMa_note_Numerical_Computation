@@ -1,0 +1,125 @@
+\ifx\allfiles\undefined
+\documentlecture[12pt, a4paper, oneside, UTF8]{ctexbook}  %  这一句是新增加的
+\usepackage[dvipsnames]{xcolor}
+\usepackage{amsmath}   % 数学公式
+\usepackage{graphicx}
+% \usetikzlibrary{arrows, calc, decorations.pathmorphing}
+\allowdisplaybreaks % 允许公式跨页换行
+\newcommand{\pa}{\partial}
+\newcommand{\mT}{\raisebox{0.1ex}{$\scriptstyle -T$}} % 调整高度为 0.1ex
+\newcommand{\lmT}{\raisebox{-0.85ex}{$\scriptstyle -T$}} % 调整高度为 -0.85ex
+\newcommand{\mone}{\raisebox{0.1ex}{$\scriptstyle -1$}} % 调整高度为 0.1ex
+\newcommand{\lmone}{\raisebox{-0.85ex}{$\scriptstyle -1$}} % 调整高度为 -0.85ex
+\newcommand{\lsup}[1]{\raisebox{-0.1ex}{$\scriptstyle #1$}}
+\newcommand{\llsup}[1]{\raisebox{-0.85ex}{$\scriptstyle #1$}}
+\newcommand{\mathminus}{\!\!-\!\!} % 数学环境连字符
+\newcommand{\vvec}[1]{\symbf{#1}}
+\newcommand{\ten}[1]{\mathbb{#1}}
+\newcommand{\red}[1]{\textcolor{red}{#1}}
+
+\begin{document}
+%\input{/config/cover} % 单独编译时，其实不用编译封面目录之类的，如需要不注释这句即可
+\else
+\fi
+%  ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓ 正文部分
+\chapter{数值计算}
+\section{绪论}
+\begin{definition}
+    若\(A\)非奇异，称\(cond(A)=\|A\|\|A^{-1}\|\)为\(A\)的条件数。
+    \(cond(A)\ge 1\)，当\(A\)为正交矩阵时\(cong(A)=1\)。
+\end{definition}
+\begin{theorem}
+    对于线性方程组\(Ax=b\)
+    \begin{enumerate}
+        \item 设\(A(x+\delta x)=b+\delta b\text{，}\delta x\text{收到}\delta b \text{的影响表示为}\)
+        \[\frac{\|\delta x\|}{\|x\|}\le cond(A)\frac{\|\delta b\|}{\|b\|}\]
+        \item 设\((A+\delta A)(x+\delta x)=b+\delta b\text{，}\delta x\text{收到}\delta A,\delta b \text{的影响表示为}\)
+        \[\frac{\|\delta x\|}{\|x\|}\le \frac{cond(A)}{1-cond\frac{\|\delta A\|}{\|A\|}}\left(\frac{\|\delta A\|}{\|A\|}
+        +\frac{\|\delta b\|}{\|b\|}\right)\]
+    \end{enumerate}
+    \begin{proof}
+        \begin{gather*}
+            (A+\delta A)(x+\delta x)=b+\delta b\\
+            (A+\delta A)\delta x=b+\delta b -\cancelto{=b+\delta A\cdot x}{A+\delta A}\\
+            \delta x=\underbrace{(A+\delta A)^{-1}}_{(I+\delta A A^{-1})^{-1}}(\delta b -\delta A\cdot x)\\
+            \|\delta x\|=\|A^{-1}(I+\delta A A^{-1})^{-1}(\delta b-\delta A \cdot x)\|
+            \\\le \|A^{-1}\|\|(I+\delta A A^{-1})^{-1}\|\|(\delta b-\delta A \cdot x)\|\\
+            \le  \|A^{-1}\|\frac{1}{1-\|\delta A\|\| A^{-1}\|}\|(\underbrace{\delta b}_{partA}-\underbrace{\delta A \cdot x}_{partB})\|\\
+            partB = \|A^{-1}\|\|A\|\frac{1}{1-\|\delta A\|\| A^{-1}\|}\frac{\|x\|\|\delta A\|}{\|A\|}\\
+            partA=\|A^{-1}\|\frac{1}{1-\|\delta A\|\| A^{-1}\|}\frac{\|\delta b\|\|Ax\|}{\|B\|}
+            \le \|A^{-1}\|\frac{1}{1-\|\delta A\|\| A^{-1}\|}\frac{\|\delta b\|\|A\|\|x\|}{\|B\|}\\
+            \frac{\|\delta x\|}{\|x\|}\le \frac{cond(A)}{1-cond\frac{\|\delta A\|}{\|A\|}}\left(\frac{\|\delta A\|}{\|A\|}
+        +\frac{\|\delta b\|}{\|b\|}\right)
+        \end{gather*}
+    \end{proof}
+\end{theorem}
+\begin{lemma}
+    若\(A\in \R^{n\times n}\text{，且}\|A\|<1\)，
+    则\begin{enumerate}
+        \item \(I-A\)非奇异
+        \item \((I-A)^{-1}=\sum_{k=0}^{\infty}A^k\)
+        \item \(\|(I-A)^{-1}\|\le \frac{1}{1-\|A\|}\)
+    \end{enumerate}
+    \begin{proof}
+        \begin{enumerate}
+            \item 
+        若\(I-A\)奇异，则\(\exists x\neq0\text{，}s.t.(I-A)x=0\text{，即1为}A\text{的特征值，矛盾}\)
+        \item 
+        \(\sum_{k=0}^{\infty}A^k\cdot (I-A)=A^0=I\)
+        \item         \(\|(I-A)^{-1}\|= \|\sum_{k=0}^{\infty}A^k\|\le \sum_{k=0}^{\infty}\|A^k\|
+        \le \sum_{k=0}^{\infty}\|A\|^k=\frac{1}{1-\|A\|}\)
+    \end{enumerate}
+    \end{proof}
+\end{lemma}
+\begin{note}
+在数值分析中，判断矩阵 $A$ 是否病态（即对微小扰动敏感）通常不直接计算 $A^{-1}$（条件数），而是依据以下经验准则：
+\begin{enumerate}
+    \item \textbf{行列式很大或很小（如某些行、列近似相关）} \\
+    行列式 $\det(A)$ 的绝对值若远小于或远大于矩阵元素数量级的 $n$ 次方，可能预示病态。\\
+    \textbf{解释：} 行列式绝对值过小通常意味着矩阵的行或列向量近似线性相关，导致其张成的“体积”很小，矩阵接近奇异。
+
+    \item \textbf{元素间相差大数量级，且无规则} \\
+    若矩阵元素在数值上跨越多个数量级（如 $10^{-6}$ 与 $10^3$ 共存），且没有特定的分布模式（如对角占优）。\\
+    \textbf{解释：} 这种巨大的尺度差异会在数值计算（如消元法）中放大舍入误差，除非该矩阵具有特殊的、可补偿的结构。
+
+    \item \textbf{主元消去过程中出现小主元} \\
+    在进行高斯消元时，如果出现绝对值非常小的主元。\\
+    \textbf{解释：} 小主元意味着矩阵接近奇异，在消元过程中需要用其去除其他大元素，这会极大地放大原始数据中存在的微小误差。
+
+    \item \textbf{特征值相差大数量级} \\
+    矩阵的特征值 $\lambda_i$ 的绝对值分布范围极广，即 $\max|\lambda_i| / \min|\lambda_i| \gg 1$。\\
+    \textbf{解释：} 对于对称矩阵，这直接导致其条件数 $\kappa(A)$ 极大，意味着矩阵在不同特征向量方向上的伸缩程度差异巨大，从而对扰动非常敏感。
+\end{enumerate}
+\end{note}
+
+\section{非线性方程求根}
+\subsection{二分法（对分法）}
+\mbox{}
+二分法两种终止条件：
+\begin{enumerate}
+    \item  给定精度条件 \( |f(x)| < \varepsilon \)
+    \textbf{不适用情况：}  
+    当函数在远离根的区域存在\textbf{平坦区间}（即导数近似为零）时，即使当前点 \(x\) 离真实根 \(r\) 还很远，也可能满足 \( |f(x)| < \varepsilon \)，导致算法提前终止，返回一个错误解。
+    
+    数学描述：  
+    存在连续函数 \( f \in C[a,b] \)，\( f(r) = 0 \)，且存在某点 \( x_0 \) 满足 \( |x_0 - r| \gg 0 \)，但 \( |f(x_0)| < \varepsilon \)。  
+    此时若以 \( |f(x_n)| < \varepsilon \) 为终止条件，可能在 \( x_n = x_0 \) 时就停止迭代，而实际误差 \( |x_n - r| \) 很大。
+    
+    \item 区间长度条件 \( b - a < \varepsilon \)
+    \textbf{不适用情况：}  
+    当函数在根 \( r \) 附近\textbf{数值上呈现陡峭跳变}（由于浮点舍入误差导致类似符号函数的行为）时，可能在迭代过程中因符号判断错误而将真根排除在区间之外。此时区间继续缩小至 \( b-a < \varepsilon \)，但区间内不含根，导致返回错误解。
+    
+    数学描述：  
+    存在连续函数 \( f \in C[a,b] \)，由于浮点运算精度限制，在根 \( r \) 的某邻域 \( (r - \delta, r + \delta) \) 之外，计算出的 \(\mathrm{sign}(f(x))\) 为常值且错误，导致二分法过早丢弃含根区间。此后区间 \([a_n, b_n]\) 满足 \( b_n - a_n < \varepsilon \) 但不满足 \( r \in [a_n, b_n] \)。
+\end{enumerate}
+
+
+
+
+
+
+
+%  ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑ 正文部分
+\ifx\allfiles\undefined
+\end{document}
+\fi

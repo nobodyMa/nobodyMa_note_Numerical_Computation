@@ -19,6 +19,8 @@
 % \usetikzlibrary{arrows.meta, positioning, shapes.geometric}
 \usepackage{enumitem}  % 列表
 \usepackage{geometry}  % 页面调整
+\usepackage{listings}
+\usepackage{multicol}  % 多栏排版
 \usepackage{ragged2e}
 \usepackage{unicode-math}
 \usepackage[hidelinks,
@@ -30,6 +32,36 @@ breaklinks=true]{hyperref}
 \allowdisplaybreaks % 允许公式跨页换行
 
 % \captionsetup{hypcap=false} % 禁用 hypcap 功能，消除\captionof 的警告
+
+% 代码块格式设置
+\lstset{
+    breaklines=true,
+    language=Matlab,
+    backgroundcolor=\color{gray!10},  % 10% 灰色背景
+    showstringspaces=false,
+    basicstyle=\footnotesize\ttfamily,  % 基本样式设为等宽正体
+    commentstyle=\ttfamily\color{green!50!black}, % 注释使用正体+绿色
+    keywordstyle=\color{blue},        % 关键字样式
+    stringstyle=\color{purple},       % 字符串样式
+    numbers=left,                     % 显示行号
+    numbersep=-15pt,                  % 行号与代码间距
+    numberstyle=\ttfamily\footnotesize\color{black}, % 行号正体
+    aboveskip=-1pt,                   % 减小上方间距
+    belowskip=-1pt,                   % 减小下方间距
+    columns=fixed,                    % 固定字符宽度
+    literate=                         % 确保数字和注释符号使用正体
+      {0}{{\ttfamily 0}}1
+      {1}{{\ttfamily 1}}1
+      {2}{{\ttfamily 2}}1
+      {3}{{\ttfamily 3}}1
+      {4}{{\ttfamily 4}}1
+      {5}{{\ttfamily 5}}1
+      {6}{{\ttfamily 6}}1
+      {7}{{\ttfamily 7}}1
+      {8}{{\ttfamily 8}}1
+      {9}{{\ttfamily 9}}1
+}
+\renewcommand{\lstlistingname}{代码}
 
 \graphicspath{ {flg/},{../flg/}, {config/}, {../config/} }  % 配置图形文件检索目录
 \linespread{1.2} % 行高
@@ -45,12 +77,12 @@ breaklinks=true]{hyperref}
 % 定理环境
 % ########## 定理环境 start ####################################
 \theoremstyle{definition}
-\newtheorem{defn}{\indent 定义}[section]
+\newtheorem{definition}{\indent 定义}[section]
 
 \newtheorem{add}{\indent 补充}[section]
 
 \newtheorem{lemma}{\indent 引理}[section]    % 引理 定理 推论 准则 共用一个编号计数
-\newtheorem{thm}[lemma]{\indent 定理}
+\newtheorem{theorem}[lemma]{\indent 定理}
 \newtheorem{corollary}[lemma]{\indent 推论}
 \newtheorem{criterion}[lemma]{\indent 准则}
 \newtheorem{law}[lemma]{\indent 定律}
@@ -58,14 +90,14 @@ breaklinks=true]{hyperref}
 
 \newtheorem{proposition}{\indent 命题}[section]
 \newtheorem{example}{\indent \color{SeaGreen}{例}}[section] % 绿色文字的 例 ，不需要就去除\color{SeaGreen}{}
-\newtheorem*{zhu}{\indent \textcolor{b1}{注}}
+\newtheorem*{note}{\indent \textcolor{b1}{注}}
 \newtheorem*{explain}{\indent \textcolor{g1}{解释}}
 
 % 两种方式定义中文的 证明 和 解 的环境：
 % 缺点：\qedhere 命令将会失效【技术有限，暂时无法解决】
 \renewenvironment{proof}{\par\textbf{证明:}\;}{\qed\par}
 \newenvironment{solution}{\par{\textbf{解:}}\;}{\qed\par}
-\newenvironment{yzh}{\par{\textbf{已知:}}\;}{}
+\newenvironment{known}{\par{\textbf{已知:}}\;}{}
 \newenvironment{tui}{\par{\textbf{推导:}}\;}{\qed\par}
 
 % 缺点：\bf 是过时命令，可以用 textb f等替代，但编译会有关于字体的警告，不过不影响使用【技术有限，暂时无法解决】

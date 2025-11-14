@@ -1,0 +1,548 @@
+\ifx\allfiles\undefined
+\documentlecture[12pt, a4paper, oneside, UTF8]{ctexbook}  %  这一句是新增加的
+\usepackage[dvipsnames]{xcolor}
+\usepackage{amsmath}   % 数学公式
+\usepackage{graphicx}
+% \usetikzlibrary{arrows, calc, decorations.pathmorphing}
+\allowdisplaybreaks % 允许公式跨页换行
+\newcommand{\pa}{\partial}
+\newcommand{\mT}{\raisebox{0.1ex}{$\scriptstyle -T$}} % 调整高度为 0.1ex
+\newcommand{\lmT}{\raisebox{-0.85ex}{$\scriptstyle -T$}} % 调整高度为 -0.85ex
+\newcommand{\mone}{\raisebox{0.1ex}{$\scriptstyle -1$}} % 调整高度为 0.1ex
+\newcommand{\lmone}{\raisebox{-0.85ex}{$\scriptstyle -1$}} % 调整高度为 -0.85ex
+\newcommand{\lsup}[1]{\raisebox{-0.1ex}{$\scriptstyle #1$}}
+\newcommand{\llsup}[1]{\raisebox{-0.85ex}{$\scriptstyle #1$}}
+\newcommand{\mathminus}{\!\!-\!\!} % 数学环境连字符
+\newcommand{\vvec}[1]{\symbf{#1}}
+\newcommand{\ten}[1]{\mathbb{#1}}
+\newcommand{\red}[1]{\textcolor{red}{#1}}
+
+\begin{document}
+%\input{/config/cover} % 单独编译时，其实不用编译封面目录之类的，如需要不注释这句即可
+\else
+\fi
+%  ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓ 正文部分
+\chapter{数值计算}
+\section{绪论}
+\begin{definition}
+    若\(A\)非奇异，称\(cond(A)=\|A\|\|A^{-1}\|\)为\(A\)的条件数。
+    \(cond(A)\ge 1\)，当\(A\)为正交矩阵时\(cong(A)=1\)。
+\end{definition}
+\begin{theorem}
+    对于线性方程组\(Ax=b\)
+    \begin{enumerate}
+        \item 设\(A(x+\delta x)=b+\delta b\text{，}\delta x\text{收到}\delta b \text{的影响表示为}\)
+        \[\frac{\|\delta x\|}{\|x\|}\le cond(A)\frac{\|\delta b\|}{\|b\|}\]
+        \item 设\((A+\delta A)(x+\delta x)=b+\delta b\text{，}\delta x\text{收到}\delta A,\delta b \text{的影响表示为}\)
+        \[\frac{\|\delta x\|}{\|x\|}\le \frac{cond(A)}{1-cond\frac{\|\delta A\|}{\|A\|}}\left(\frac{\|\delta A\|}{\|A\|}
+        +\frac{\|\delta b\|}{\|b\|}\right)\]
+    \end{enumerate}
+    \begin{proof}
+        \begin{gather*}
+            (A+\delta A)(x+\delta x)=b+\delta b\\
+            (A+\delta A)\delta x=b+\delta b -\cancelto{=b+\delta A\cdot x}{A+\delta A}\\
+            \delta x=\underbrace{(A+\delta A)^{-1}}_{(I+\delta A A^{-1})^{-1}}(\delta b -\delta A\cdot x)\\
+            \|\delta x\|=\|A^{-1}(I+\delta A A^{-1})^{-1}(\delta b-\delta A \cdot x)\|
+            \\\le \|A^{-1}\|\|(I+\delta A A^{-1})^{-1}\|\|(\delta b-\delta A \cdot x)\|\\
+            \le  \|A^{-1}\|\frac{1}{1-\|\delta A\|\| A^{-1}\|}\|(\underbrace{\delta b}_{partA}-\underbrace{\delta A \cdot x}_{partB})\|\\
+            partB = \|A^{-1}\|\|A\|\frac{1}{1-\|\delta A\|\| A^{-1}\|}\frac{\|x\|\|\delta A\|}{\|A\|}\\
+            partA=\|A^{-1}\|\frac{1}{1-\|\delta A\|\| A^{-1}\|}\frac{\|\delta b\|\|Ax\|}{\|B\|}
+            \le \|A^{-1}\|\frac{1}{1-\|\delta A\|\| A^{-1}\|}\frac{\|\delta b\|\|A\|\|x\|}{\|B\|}\\
+            \frac{\|\delta x\|}{\|x\|}\le \frac{cond(A)}{1-cond\frac{\|\delta A\|}{\|A\|}}\left(\frac{\|\delta A\|}{\|A\|}
+        +\frac{\|\delta b\|}{\|b\|}\right)
+        \end{gather*}
+    \end{proof}
+\end{theorem}
+\begin{lemma}
+    若\(A\in \R^{n\times n}\text{，且}\|A\|<1\)，
+    则\begin{enumerate}
+        \item \(I-A\)非奇异
+        \item \((I-A)^{-1}=\sum_{k=0}^{\infty}A^k\)
+        \item \(\|(I-A)^{-1}\|\le \frac{1}{1-\|A\|}\)
+    \end{enumerate}
+    \begin{proof}
+        \begin{enumerate}
+            \item 
+        若\(I-A\)奇异，则\(\exists x\neq0\text{，}s.t.(I-A)x=0\text{，即1为}A\text{的特征值，矛盾}\)
+        \item 
+        \(\sum_{k=0}^{\infty}A^k\cdot (I-A)=A^0=I\)
+        \item         \(\|(I-A)^{-1}\|= \|\sum_{k=0}^{\infty}A^k\|\le \sum_{k=0}^{\infty}\|A^k\|
+        \le \sum_{k=0}^{\infty}\|A\|^k=\frac{1}{1-\|A\|}\)
+    \end{enumerate}
+    \end{proof}
+\end{lemma}
+\begin{note}
+在数值分析中，判断矩阵 $A$ 是否病态（即对微小扰动敏感）通常不直接计算 $A^{-1}$（条件数），而是依据以下经验准则：
+\begin{enumerate}
+    \item \textbf{行列式很大或很小（如某些行、列近似相关）} \\
+    行列式 $\det(A)$ 的绝对值若远小于或远大于矩阵元素数量级的 $n$ 次方，可能预示病态。\\
+    \textbf{解释：} 行列式绝对值过小通常意味着矩阵的行或列向量近似线性相关，导致其张成的“体积”很小，矩阵接近奇异。
+
+    \item \textbf{元素间相差大数量级，且无规则} \\
+    若矩阵元素在数值上跨越多个数量级（如 $10^{-6}$ 与 $10^3$ 共存），且没有特定的分布模式（如对角占优）。\\
+    \textbf{解释：} 这种巨大的尺度差异会在数值计算（如消元法）中放大舍入误差，除非该矩阵具有特殊的、可补偿的结构。
+
+    \item \textbf{主元消去过程中出现小主元} \\
+    在进行高斯消元时，如果出现绝对值非常小的主元。\\
+    \textbf{解释：} 小主元意味着矩阵接近奇异，在消元过程中需要用其去除其他大元素，这会极大地放大原始数据中存在的微小误差。
+
+    \item \textbf{特征值相差大数量级} \\
+    矩阵的特征值 $\lambda_i$ 的绝对值分布范围极广，即 $\max|\lambda_i| / \min|\lambda_i| \gg 1$。\\
+    \textbf{解释：} 对于对称矩阵，这直接导致其条件数 $\kappa(A)$ 极大，意味着矩阵在不同特征向量方向上的伸缩程度差异巨大，从而对扰动非常敏感。
+\end{enumerate}
+\end{note}
+
+\section{非线性方程求根}
+\subsection{二分法（对分法）}
+\mbox{}
+二分法两种终止条件：
+\begin{enumerate}
+    \item  给定精度条件 \( |f(x)| < \varepsilon \)
+    \textbf{不适用情况：}  
+    当函数在远离根的区域存在\textbf{平坦区间}（即导数近似为零）时，即使当前点 \(x\) 离真实根 \(r\) 还很远，也可能满足 \( |f(x)| < \varepsilon \)，导致算法提前终止，返回一个错误解。
+    
+    \item 区间长度条件 \( b - a < \varepsilon \)
+    \textbf{不适用情况：}  
+    当函数在根 \( r \) 附近\textbf{数值上呈现陡峭跳变}（由于浮点舍入误差导致类似符号函数的行为）时，可能在迭代过程中因符号判断错误而将真根排除在区间之外。此时区间继续缩小至 \( b-a < \varepsilon \)，但区间内不含根，导致返回错误解。
+\end{enumerate}
+
+二分法缺点：
+  \begin{enumerate}
+    \item 只能求单个根，只能计算实根。
+    \item 即使\(f(x)\text{在}[a,b]\text{上有根，也未必有}f(a)f(b)<0\)。
+  \end{enumerate}  
+\begin{note}
+    常用\(sgn(f(a))\cdot sgn(f(x))> 0\text{代替}f(a)\cdot f(x)>0\)的判断，避免\(f(a)\cdot f(x)>0\)数值溢出。
+\end{note}
+\subsection{不动点迭代法}
+\begin{theorem}
+若 \(\varphi(x)\) 定义在 \([a, b]\) 上，如果 \(\varphi(x)\) 满足
+\begin{enumerate}
+    \item 当 \(x \in [a, b]\) 时有
+    \(
+    a \leq \varphi(x) \leq b
+    \)；
+    \item \(\varphi(x)\) 在 \([a, b]\) 上可导，并且存在正数 \(L < 1\)，使对任意的 \(x \in [a, b]\)，
+    \(
+    |\varphi'(x)| \leq L
+    \)。
+\end{enumerate}
+\begin{enumerate}
+    \item 则在 \([a, b]\) 上存在唯一的不动点 \(x^*\)，即满足 \(x^* = \varphi(x^*)\) 的点。
+    \item 迭代格式 \(x_{k+1} = \varphi(x_k)\) 对任意的初值 \(x_0 \in [a, b]\) 均收敛于 \(\varphi(x)\) 的不动点 \(x^*\)。
+    \item 并有误差估计式
+\(\displaystyle
+|x^* - x_k| \leq \frac{L^k}{1 - L} |x_1 - x_0|
+\)。
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+(1) \textbf{存在性}：
+令 \(\psi(x) = x - \varphi(x)\)，则有
+\[
+\psi(a) = a - \varphi(a) \leq 0, \quad \psi(b) = b - \varphi(b) \geq 0.
+\]
+由介值定理，存在 \(x^*\), \(a \leq x^* \leq b\)，使得
+\[
+\psi(x^*) = x^* - \varphi(x^*) = 0 \quad \text{或} \quad x^* = \varphi(x^*).
+\]
+
+\textbf{唯一性}（反证法）：
+另一方面，若另有 \(x^+\) 满足 \(x^+ = \varphi(x^+)\)，则由
+\[
+|x^* - x^+| = |\varphi(x^*) - \varphi(x^+)| = |\varphi'(\xi)(x^* - x^+)| \leq L|x^* - x^+|, \quad \xi \in [a,b]
+\]
+以及 \(L < 1\)，得到 \(x^* = x^+\)。
+
+(2) 当 \(x_0 \in [a,b]\) 时可用归纳法证明，迭代序列 \(\{x_k\} \subset [a,b]\)，由微分中值定理
+\begin{gather*}
+    x_{k+1} - x^* = \varphi(x_k) - \varphi(x^*) = \overset{\xi \in [a,b]}{\varphi'(\xi)}(x_k - x^*)\leq L (x_k - x^*)
+\\
+|x_{k+1} - x^*| \leq L|x_k - x^*| = L|\varphi(x_{k-1}) - \varphi(x^*)| \leq L^2|x_{k-1} - x^*| \leq \cdots \leq L^{k+1}|x_0 - x^*|
+\end{gather*}
+因为 \(L < 1\)，所以当 \(k \to \infty\) 时，\(L^{k+1} \to 0\)，\(x_{k+1} \to x^*\)，迭代格式 \(x_{k+1} = \varphi(x_k)\) 收敛。
+
+(3) 误差估计：
+\[
+|x_{k+1} - x_k| = |\varphi(x_k) - \varphi(x_{k-1})| \leq L|x_k - x_{k-1}| \leq \cdots \leq L^k|x_1 - x_0|.
+\]
+设 \(k\) 固定，对于任意的正整数 \(p\) 有
+\begin{align*}
+|x_{k+p} - x_k| &\leq |x_{k+p} - x_{k+p-1}| + |x_{k+p-1} - x_{k+p-2}| + \cdots + |x_{k+1} - x_k| \\
+&\leq (L^{k+p-1} + L^{k+p-2} + \cdots + L^k)|x_1 - x_0| = \frac{L^k(1 - L^p)}{1 - L}|x_1 - x_0|.
+\end{align*}
+由于 \(p\) 的任意性及
+\[
+\lim_{p \to \infty} x_{k+p} = x^*,
+\]
+故有 \(x^* = \varphi(x^*)\)，
+\[
+|x^* - x_k| \leq \frac{L^k}{1 - L}|x_1 - x_0|.
+\]
+\end{proof}
+
+构造收敛迭代格式的两个要素
+\begin{enumerate}
+    \item 选取合适的等价形式 \(x = \varphi(x)\)，使得 \(\varphi(x)\) 满足上述定理的条件。
+    \item 选取合适的初始值 \(x_0\)。必需取自 \(x^*\) 的充分小邻域，这个邻域大小决定于函数 \(f(x)\)，以及做出的等价形式 \(x = \varphi(x)\)。
+\end{enumerate}
+\subsection{Newton迭代法}
+Newton迭代格式为
+\[x_{k+1}=x_k -\frac{f(x_k)}{f'(x_k)},\quad k=0,1,2,\cdots\]
+
+Newton迭代对应\(f(x)=0\)的迭代方程是\(\varphi(x)=x-\frac{f(x)}{f'(x)}\)，\(\displaystyle\varphi'(x)=\frac{f(x)f''(x)}{(f'(x))^2}\)。
+\begin{enumerate}
+    \item 若\(\alpha\)是\(f(x)\)的单根时，\(f(\alpha)=0\text{，}f'(\alpha)\neq 0\)，则有\(|\varphi'(x_0)|=0\)，
+    只要初值\(x_0\)足够接近\(\alpha\)，则迭代收敛且收敛阶为2。
+    \item 若\(\alpha\)是\(f(x)\)的\(p\)重根时设 \(\alpha\) 为 \(f(x)\) 的 \(p\) 重根时，记
+\begin{gather*}
+f(x) = (x - \alpha)^p h(x) \\
+\varphi(x) = x - \frac{(x - \alpha)^p h(x)}{p(x - \alpha)^{p-1}h(x) + (x - \alpha)^p h'(x)} = x - \frac{(x - \alpha)h(x)}{ph(x) + (x - \alpha)h'(x)} \\
+\varphi'(x) = \frac{\left( 1 - \frac{1}{p} \right) + (x - \alpha)\frac{2h'(x)}{ph(x)} + (x - \alpha)^2\frac{h''(x)}{p^2h(x)}}
+{\left[ 1 + (x - \alpha)\frac{h'(x)}{ph(x)} \right]^2 }\\
+\varphi'(\alpha) = 1 - \frac{1}{p}
+\end{gather*}
+仍然有 \(|\varphi'(\alpha)| < 1\)，当初始值在根 \(\alpha\) 附近，迭代也收敛，这是一阶迭代方法.
+
+若 \(\alpha\) 为 \(f(x)\) 的 \(p\) 重根时，这时取下面迭代格式，仍是二阶方法
+\begin{enumerate}
+    \item \[
+x_{k+1} = x_k - p\frac{f(x_k)}{f'(x_k)}, \quad k = 1, 2, \ldots
+\]
+    \item 取\(g(x) = \frac{f(x)}{f'(x)}\)，则迭代格式为
+    \begin{align*}
+        x_{k+1} &= x_k - \frac{g(x_k)}{g'(x_k)}, \quad k = 1, 2, \ldots\\
+    &=x_k-\frac{f(x_k)f'(x_k)}{(f'(x_k))^2 - f(x_k)f''(x_k)}
+    \end{align*}
+    \begin{note}
+        如果 \(\alpha\) 是\(f(x) \)的\(p\)重根，那么\(\alpha\)是\(g(x)\) 的单根。因此，对函数 \(g(x)\) 进行 Newton 迭代，能够恢复二阶收敛性。
+    \end{note}
+\end{enumerate}
+
+\end{enumerate}
+\subsection{弦截法}
+在Newton迭代格式中，用差商代替导数，并给定两个初值\(x_0\)和\(x_1\)，得到弦截法迭代格式：
+\[x_{k+1}=x_k -\frac{f(x_k)(x_k - x_{k-1})}{f(x_k)-f(x_{k-1})},\quad k=1,2,\cdots\]
+弦截法的收敛阶为\(\frac{1+\sqrt{5}}{2}\approx 1.618\)，介于线性收敛和二次收敛之间。
+\subsection{对于非线性方程组的Newton方法}
+对于非线性方程组：
+\[
+\vvec{F}(\vvec{x}) = \vvec{0}, \quad \vvec{F}: \mathbb{R}^n \to \mathbb{R}^n
+\]
+
+Newton迭代法的基本格式为：
+\(
+\vvec{x}^{(k+1)} = \vvec{x}^{(k)} - [J_F(\vvec{x}^{(k)})]^{-1} \vvec{F}(\vvec{x}^{(k)})
+\)，其中 $J_F(\vvec{x})$ 是 Jacobi 矩阵：
+\[
+J_F(\vvec{x}) = \begin{bmatrix}
+\frac{\partial f_1}{\partial x_1} & \frac{\partial f_1}{\partial x_2} & \cdots & \frac{\partial f_1}{\partial x_n} \\
+\frac{\partial f_2}{\partial x_1} & \frac{\partial f_2}{\partial x_2} & \cdots & \frac{\partial f_2}{\partial x_n} \\
+\vdots & \vdots & \ddots & \vdots \\
+\frac{\partial f_n}{\partial x_1} & \frac{\partial f_n}{\partial x_2} & \cdots & \frac{\partial f_n}{\partial x_n}
+\end{bmatrix}
+\]
+
+为避免直接求逆矩阵，实际计算采用解线性方程组的形式：
+\begin{align*}
+J_F(\vvec{x}^{(k)}) \Delta \vvec{x}^{(k)} &= -\vvec{F}(\vvec{x}^{(k)}) \\
+\vvec{x}^{(k+1)} &= \vvec{x}^{(k)} + \Delta \vvec{x}^{(k)}
+\end{align*}
+
+newton\_system\_solver.m是我编写的 MATLAB 代码，实现了用于求解非线性方程组的 Newton 迭代法：
+% \begin{multicols}{2}
+    \begin{lstlisting}[caption={newton\_system\_solver.m}]
+        function [solution, iterations, errors] = newton_system(f, vars, x0, max_iter, tol)
+        % 使用 Newton 迭代法求解非线性方程组
+        % 
+        % 输入:
+        %   f - 符号函数向量
+        %   vars - 符号变量向量  
+        %   x0 - 初始猜测
+        %   max_iter - 最大迭代次数 (默认: 50)
+        %   tol - 容差 (默认: 1e-12)
+        % 
+        % 输出:
+        %   solution - 数值解
+        %   iterations - 实际迭代次数
+        %   errors - 每次迭代的误差历史
+        
+        if nargin < 4
+            max_iter = 50;
+        end
+        if nargin < 5
+            tol = 1e-12;
+        end
+        
+        % 计算 Jacobian 矩阵
+        J = jacobian(f, vars);
+        
+        % 转换为数值函数句柄
+        f_func = matlabFunction(f, 'Vars', {vars});
+        J_func = matlabFunction(J, 'Vars', {vars});
+        
+        x = x0;
+        errors = zeros(max_iter, 1);
+        
+        for iterations = 1:max_iter
+            % 计算当前函数值和 Jacobian
+            f_val = f_func(x);
+            J_val = J_func(x);
+            
+            % 计算误差
+            current_error = norm(f_val);
+            errors(iterations) = current_error;
+            
+            % 检查收敛
+            if current_error < tol
+                break;
+            end
+            
+            % Newton 迭代
+            delta_x = -J_val \ f_val;
+            x = x + delta_x;
+            
+            % 检查步长是否太小
+            if norm(delta_x) < 1e-14
+                disp('delta_x 小于1e-14')
+                break;
+            end
+        end
+    
+        solution = x;
+    end
+    \end{lstlisting}
+% \end{multicols}
+
+我让DeepSeek帮我优化了代码，提高了运行效率，见newton\_system\_solver.m。
+\section{求解线性方程组的迭代方法}
+考虑线性方程组 $Ax = b$，将矩阵 $A$ 分解为 $A = N - P$，其中 $N$ 可逆，得到等价形式：\(x = N^{-1}Px + N^{-1}b\)。
+令 $M = N^{-1}P$，$g = N^{-1}b$，则原方程等价于：
+\(x = Mx + g\)
+
+构造迭代格式：
+\[
+x^{(k)} = Mx^{(k-1)} + g, \quad k = 1, 2, \dots
+\]
+
+设迭代序列 $\{x^{(k)}\}$ 收敛于 $x^*$，则对迭代式两边取极限得：
+\[
+x^* = Mx^* + g,
+\]
+即 $x^*$ 是 $Ax = b$ 的解。
+
+误差向量 $e^{(k)} = x^* - x^{(k)}$ 满足：
+\begin{gather*}
+e^{(k)} = M e^{(k-1)} = M^2 e^{(k-2)} = \cdots = M^k e^{(0)}, \\
+\|e^{(k)}\| = \|M^k e^{(0)}\| \leq \|M^k\| \cdot \|e^{(0)}\|.
+\end{gather*}
+若 $\lim_{k \to \infty} \|M^k\| = 0$，则 $\lim_{k \to \infty} e^{(k)} = 0$，迭代收敛。
+
+由线性代数定理知：
+\[
+\lim_{k \to \infty} M^k = O \quad \Leftrightarrow \quad \rho(M) < 1,
+\]
+其中 $\rho(M)$ 为 $M$ 的谱半径。又因为 $\|M\| \geq \rho(M)$，所以若 $\|M\| < 1$，则 $\rho(M) < 1$，迭代收敛。
+\subsection{简单Jacobi迭代}
+
+设线性方程组 $Ax = b$，其中 $A = (a_{ij}) \in \mathbb{R}^{n \times n}$ ，且 $a_{ii} \neq 0, (i = 1, 2, \dots, n)$。
+
+将 $A$ 分解为：
+\[
+A = D + A - D
+\]
+其中：
+\begin{itemize}
+    \item $D = \text{diag}(a_{11}, a_{22}, \dots, a_{nn})$ 为对角矩阵，设\(D\)可逆。
+\end{itemize}
+
+则\begin{gather*}
+    Ax = (D + A - D)x = b \Leftrightarrow Dx = (D - A)x + b 
+\end{gather*}
+
+Jacobi 迭代法的迭代格式为：
+\begin{enumerate}
+    \item 矩阵形式为：
+\begin{gather*}
+x^{(k)} = D^{-1}(D - A)x^{(k-1)} + D^{-1}b, \quad k = 1, 2, \dots\\
+\text{记}\quad R=I-D^{-1}A,\quad g=D^{-1}b\\
+x^{(k)} = Rx^{(k-1)} + g\\
+\text{即}\quad \begin{pmatrix}
+x_{1}^{(k)} \\
+x_{2}^{(k)} \\
+\vdots \\
+x_{n}^{(k)}
+\end{pmatrix}
+=
+\begin{pmatrix}
+0 & r_{12} & \cdots & r_{1n} \\
+r_{21} & 0 & \cdots & r_{2n} \\
+\vdots & \vdots & \ddots & \vdots \\
+r_{n1} & r_{n2} & \cdots & 0
+\end{pmatrix}
+\begin{pmatrix}
+x_{1}^{(k-1)} \\
+x_{2}^{(k-1)} \\
+\vdots \\
+x_{n}^{(k-1)}
+\end{pmatrix}
++
+\begin{pmatrix}
+g_{1} \\
+g_{2} \\
+\vdots \\
+g_{n}
+\end{pmatrix}\\
+r_{ij} = -\frac{a_{ij}}{a_{ii}}, \quad g_i = \frac{b_i}{a_{ii}}, \quad r_{ii} = 0
+\end{gather*}
+
+\item 分量形式为：
+\begin{gather*}
+x_i^{(k)} = \frac{1}{a_{ii}} \left( b_i - \sum_{j=1}^{i-1} a_{ij}x_j^{(k-1)} - \sum_{j=i+1}^{n} a_{ij}x_j^{(k-1)} \right), \quad i = 1, 2, \dots, n
+\end{gather*}
+\end{enumerate}
+
+迭代收敛的充分必要条件是：
+\[
+\rho(R) < 1
+\]
+其中 $\rho(R)$ 是 Jacobi 迭代矩阵的谱半径。
+\begin{theorem}
+    若 $M$ 严格对角占优，则 $M$ 可逆。
+\begin{proof}
+     设 $M$ 严格行对角占优。若 $M$ 不可逆，则存在非零向量 $x = (x_1, \dots, x_n)^T$ 使 $Mx = 0$。
+    取 $|x_i| = \max(|x_1|, \dots, |x_n|)$，则：
+    \[
+    |m_{ii}x_i| = \left|\sum_{j\neq i} m_{ij}x_j\right| \leq \sum_{j\neq i} |m_{ij}|\cdot|x_i| < |m_{ii}|\cdot|x_i|
+    \]
+    矛盾。若 $M$ 严格列对角占优，则 $M^T$ 严格行对角占优。综上，$M$ 可逆。
+\end{proof}
+\end{theorem}
+\begin{theorem}
+    若 $A$ 严格对角占优，则 Jacobi 迭代收敛。
+\begin{proof}
+\begin{enumerate}
+    \item[] 若 $A$ 严格行对角占优：
+    \begin{gather*}
+    \rho(I - D^{-1}A) \leq \|I - D^{-1}A\|_\infty 
+    = \max_{1 \leq i \leq n} \sum_{j \neq i} \frac{|a_{ij}|}{|a_{ii}|} < 1
+    \end{gather*}
+    \item[] 若 $A$ 严格列对角占优：
+    \begin{gather*}
+    \rho(I - D^{-1}A) = \rho(I - AD^{-1}) \leq \|I - AD^{-1}\|_1 
+    = \max_{1 \leq j \leq n} \sum_{i \neq j} \frac{|a_{ij}|}{|a_{jj}|} < 1
+    \end{gather*}
+\end{enumerate}
+\begin{note}
+    \begin{gather*}
+        \det(D)\det(\lambda I - I + D^{-1}A)\det(D^{-1}) = \det(\lambda I - I + AD^{-1})\\
+        \Leftrightarrow \text{特征值一致} \Rightarrow \rho(I - D^{-1}A) = \rho(I - AD^{-1})
+    \end{gather*}
+\end{note}
+\end{proof}
+\end{theorem}
+
+\subsection{Gauss-Seidel迭代}
+
+设线性方程组 $Ax = b$，其中 $A = (a_{ij}) \in \mathbb{R}^{n \times n}$，且 $a_{ii} \neq 0, (i = 1, 2, \dots, n)$。
+
+将 $A$ 分解为：
+\[
+A = D + L + U
+\]
+其中：
+\begin{itemize}
+    \item $D = \text{diag}(a_{11}, a_{22}, \dots, a_{nn})$ 为对角矩阵
+    \item $L$ 为严格下三角部分（$l_{ij} = a_{ij}$ for $i > j$, $l_{ij} = 0$ for $i \leq j$）
+    \item $U$ 为严格上三角部分（$u_{ij} = a_{ij}$ for $i < j$, $u_{ij} = 0$ for $i \geq j$）
+\end{itemize}
+
+则\begin{gather*}
+    Ax = (D + L + U)x = b \Leftrightarrow (D + L)x = -Ux + b 
+\end{gather*}
+
+Gauss-Seidel 迭代法的迭代格式为：
+\begin{enumerate}
+    \item 矩阵形式为：
+\begin{gather*}
+x^{(k)} = -(D + L)^{-1}Ux^{(k-1)} + (D + L)^{-1}b, \quad k = 1, 2, \dots\\
+\text{记}\quad G = -(D + L)^{-1}U,\quad g = (D + L)^{-1}b\\
+x^{(k)} = Gx^{(k-1)} + g
+\end{gather*}
+
+\item 分量形式为：
+\begin{gather*}
+x_i^{(k)} = \frac{1}{a_{ii}} \left( b_i - \sum_{j=1}^{i-1} a_{ij}x_j^{(k)} - \sum_{j=i+1}^{n} a_{ij}x_j^{(k-1)} \right), \quad i = 1, 2, \dots, n
+\end{gather*}
+\end{enumerate}
+
+迭代收敛的充分必要条件是：
+\[
+\rho(G) < 1
+\]
+其中 $\rho(G)$ 是 Gauss-Seidel 迭代矩阵的谱半径。
+
+\begin{theorem}
+    若 $A$ 严格对角占优，则 Gauss-Seidel 迭代收敛。
+\begin{proof}
+设 $A$ 严格行对角占优。记误差向量 $e^{(k)} = x^* - x^{(k)}$，其中 $x^*$ 为精确解。
+
+由 Gauss-Seidel 迭代格式：
+\begin{gather*}
+e^{(k)} = -(D + L)^{-1}U e^{(k-1)}
+\end{gather*}
+
+设 $\|e^{(k)}\|_\infty = |e_i^{(k)}|$，则：
+\begin{gather*}
+|e_i^{(k)}| = \left| -\frac{1}{a_{ii}} \left( \sum_{j=1}^{i-1} a_{ij}e_j^{(k)} + \sum_{j=i+1}^{n} a_{ij}e_j^{(k-1)} \right) \right| \\
+\leq \frac{1}{|a_{ii}|} \left( \sum_{j=1}^{i-1} |a_{ij}|\cdot|e_j^{(k)}| + \sum_{j=i+1}^{n} |a_{ij}|\cdot|e_j^{(k-1)}| \right) \\
+\leq \frac{1}{|a_{ii}|} \left( \sum_{j=1}^{i-1} |a_{ij}|\cdot\|e^{(k)}\|_\infty + \sum_{j=i+1}^{n} |a_{ij}|\cdot\|e^{(k-1)}\|_\infty \right)
+\end{gather*}
+
+整理得：
+\begin{gather*}
+\|e^{(k)}\|_\infty \leq \frac{\sum_{j=i+1}^{n} |a_{ij}|}{|a_{ii}| - \sum_{j=1}^{i-1} |a_{ij}|} \|e^{(k-1)}\|_\infty
+\end{gather*}
+
+由于 $A$ 严格对角占优，有：
+\begin{gather*}
+\frac{\sum_{j=i+1}^{n} |a_{ij}|}{|a_{ii}| - \sum_{j=1}^{i-1} |a_{ij}|} < 1
+\end{gather*}
+
+故 $\|e^{(k)}\|_\infty \to 0$，Gauss-Seidel 迭代收敛。
+\end{proof}
+\end{theorem}
+
+\begin{theorem}
+    若 $A$ 对称正定，则 Gauss-Seidel 迭代收敛。
+\begin{proof}
+由于 $A$ 对称正定，$D$ 正定，$L$ 和 $U$ 满足 $U = L^T$。
+
+设 $\lambda$ 为 $G$ 的特征值，$x$ 为对应特征向量，则：
+\begin{gather*}
+Gx = \lambda x \Rightarrow -(D + L)^{-1}Ux = \lambda x \Rightarrow -Ux = \lambda(D + L)x
+\end{gather*}
+
+考虑二次型：
+\begin{gather*}
+x^H Ax = x^H (D + L + U)x = x^H (D + L - \lambda(D + L))x \\
+= (1 - \lambda)x^H (D + L)x
+\end{gather*}
+
+由于 $A$ 正定，$x^H Ax > 0$，且 $D + L$ 正定，故 $|\lambda| < 1$，即 $\rho(G) < 1$。
+\end{proof}
+\end{theorem}
+
+
+
+
+
+
+
+
+
+%  ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑ 正文部分
+\ifx\allfiles\undefined
+\end{document}
+\fi

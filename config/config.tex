@@ -45,12 +45,12 @@ breaklinks=true]{hyperref}
 % 定理环境
 % ########## 定理环境 start ####################################
 \theoremstyle{definition}
-\newtheorem{definition}{\indent 定义}[section]
+\newtheorem{defn}{\indent 定义}[section]
 
 \newtheorem{add}{\indent 补充}[section]
 
 \newtheorem{lemma}{\indent 引理}[section]    % 引理 定理 推论 准则 共用一个编号计数
-\newtheorem{theorem}[lemma]{\indent 定理}
+\newtheorem{thm}[lemma]{\indent 定理}
 \newtheorem{corollary}[lemma]{\indent 推论}
 \newtheorem{criterion}[lemma]{\indent 准则}
 \newtheorem{law}[lemma]{\indent 定律}
@@ -58,14 +58,14 @@ breaklinks=true]{hyperref}
 
 \newtheorem{proposition}{\indent 命题}[section]
 \newtheorem{example}{\indent \color{SeaGreen}{例}}[section] % 绿色文字的 例 ，不需要就去除\color{SeaGreen}{}
-\newtheorem*{note}{\indent \textcolor{b1}{注}}
+\newtheorem*{zhu}{\indent \textcolor{b1}{注}}
 \newtheorem*{explain}{\indent \textcolor{g1}{解释}}
 
 % 两种方式定义中文的 证明 和 解 的环境：
 % 缺点：\qedhere 命令将会失效【技术有限，暂时无法解决】
 \renewenvironment{proof}{\par\textbf{证明:}\;}{\qed\par}
 \newenvironment{solution}{\par{\textbf{解:}}\;}{\qed\par}
-\newenvironment{known}{\par{\textbf{已知:}}\;}{}
+\newenvironment{yzh}{\par{\textbf{已知:}}\;}{}
 \newenvironment{tui}{\par{\textbf{推导:}}\;}{\qed\par}
 
 % 缺点：\bf 是过时命令，可以用 textb f等替代，但编译会有关于字体的警告，不过不影响使用【技术有限，暂时无法解决】

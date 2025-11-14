@@ -1,4 +1,4 @@
-This is XeTeX, Version 3.141592653-2.6-0.999996 (TeX Live 2024) (preloaded format=xelatex 2024.5.24)  12 NOV 2025 18:58
+This is XeTeX, Version 3.141592653-2.6-0.999996 (TeX Live 2024) (preloaded format=xelatex 2024.5.24)  12 NOV 2025 17:39
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -565,12 +565,12 @@ Package uniquecounter Info: New unique counter `rerunfilecheck' on input line 28
 )
 \Hy@SectionHShift=\skip89
 )
-\c@definition=\count339
+\c@defn=\count339
 \c@add=\count340
 \c@lemma=\count341
 \c@proposition=\count342
 \c@example=\count343
-) (./main.aux (./chap1/chap.aux))
+) (./main.aux (./config/cover.aux) (./chap1/chap.aux))
 \openout1 = `main.aux'.
 
 LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 5.
@@ -809,53 +809,21 @@ Package hyperref Info: Link coloring ON on input line 5.
 
 \openout2 = `chap1/chap.aux'.
 
- (./chap1/chap.tex
-第一章
-LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(2)/m/n' will be
-(Font)              scaled to size 12.00128pt on input line 28.
-LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(2)/m/n' will be
-(Font)              scaled to size 8.40088pt on input line 28.
-LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(2)/m/n' will be
-(Font)              scaled to size 6.00064pt on input line 28.
-LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(3)/m/n' will be
-(Font)              scaled to size 11.99872pt on input line 28.
-LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(3)/m/n' will be
-(Font)              scaled to size 8.3991pt on input line 28.
-LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(3)/m/n' will be
-(Font)              scaled to size 5.99936pt on input line 28.
-LaTeX Font Info:    Trying to load font information for U+msa on input line 28.
-(d:/LaTex/texlive/2024/texmf-dist/tex/latex/amsfonts/umsa.fd
-File: umsa.fd 2013/01/14 v3.01 AMS symbols A
-)
-LaTeX Font Info:    Trying to load font information for U+msb on input line 28.
- (d:/LaTex/texlive/2024/texmf-dist/tex/latex/amsfonts/umsb.fd
-File: umsb.fd 2013/01/14 v3.01 AMS symbols B
-)
-LaTeX Font Info:    Trying to load font information for U+rsfs on input line 28.
- (d:/LaTex/texlive/2024/texmf-dist/tex/latex/jknapltx/ursfs.fd
-File: ursfs.fd 1998/03/24 rsfs font definition file (jk)
-) [1
-
-
-
-]
-LaTeX Font Info:    Font shape `TU/SimSun(0)/m/sl' in size <12> not available
-(Font)              Font shape `TU/SimSun(0)/m/it' tried instead on input line 104.
- [2]) [3] (./main.aux (./chap1/chap.aux))
+ (./chap1/chap.tex) (./main.aux (./chap1/chap.aux))
  ***********
 LaTeX2e <2023-11-01> patch level 1
 L3 programming layer <2022/07/14>
  ***********
 Package rerunfilecheck Info: File `main.out' has not changed.
-(rerunfilecheck)             Checksum: C571066EC69C2D3984647B0E1E38C329;380.
+(rerunfilecheck)             Checksum: D41D8CD98F00B204E9800998ECF8427E;0.
  ) 
 Here is how much of TeX's memory you used:
- 22423 strings out of 476691
- 450395 string characters out of 5799507
- 1949842 words of memory out of 5000000
- 44144 multiletter control sequences out of 15000+600000
- 563882 words of font info for 92 fonts, out of 8000000 for 9000
+ 22060 strings out of 476691
+ 432923 string characters out of 5799507
+ 1919842 words of memory out of 5000000
+ 43828 multiletter control sequences out of 15000+600000
+ 560427 words of font info for 55 fonts, out of 8000000 for 9000
  36 hyphenation exceptions out of 8191
- 93i,18n,114p,537b,616s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 93i,1n,114p,537b,274s stack positions out of 10000i,1000n,20000p,200000b,200000s
 
-Output written on main.pdf (3 pages).
+No pages of output.

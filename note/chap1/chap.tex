@@ -250,10 +250,10 @@ J_F(\vvec{x}^{(k)}) \Delta \vvec{x}^{(k)} &= -\vvec{F}(\vvec{x}^{(k)}) \\
 \vvec{x}^{(k+1)} &= \vvec{x}^{(k)} + \Delta \vvec{x}^{(k)}
 \end{align*}
 
-newton\_system\_solver.m是我编写的 MATLAB 代码，实现了用于求解非线性方程组的 Newton 迭代法：
+newton\_system.m是我编写的 MATLAB 代码，实现了用于求解非线性方程组的 Newton 迭代法：
 % \begin{multicols}{2}
-    \begin{lstlisting}[caption={newton\_system\_solver.m}]
-        function [solution, iterations, errors] = newton_system(f, vars, x0, max_iter, tol)
+    \begin{lstlisting}[caption={newton\_system.m}]
+    function [solution, iterations, errors] = newton_system(f, vars, x0, max_iter, tol)
         % 使用 Newton 迭代法求解非线性方程组
         % 
         % 输入:
@@ -315,7 +315,8 @@ newton\_system\_solver.m是我编写的 MATLAB 代码，实现了用于求解非
     \end{lstlisting}
 % \end{multicols}
 
-我让DeepSeek帮我优化了代码，提高了运行效率，见newton\_system\_solver.m。
+我让DeepSeek帮我优化了代码，使用结构体管理求解器参数设置，并且可以根据输入函数类型（符号函数/函数句柄）自动选择MATLAB内置的Jacobian函数解析计算Jacobi矩阵，
+或者使用中心差分法计算Jacobi矩阵，见newton\_system\_solver.m。
 \section{求解线性方程组的迭代方法}
 考虑线性方程组 $Ax = b$，将矩阵 $A$ 分解为 $A = N - P$，其中 $N$ 可逆，得到等价形式：\(x = N^{-1}Px + N^{-1}b\)。
 令 $M = N^{-1}P$，$g = N^{-1}b$，则原方程等价于：
@@ -443,6 +444,62 @@ x_i^{(k)} = \frac{1}{a_{ii}} \left( b_i - \sum_{j=1}^{i-1} a_{ij}x_j^{(k-1)} - \
 \end{proof}
 \end{theorem}
 
+\begin{lstlisting}[caption={jacobi\_iteration.m}]
+    function [x, iter, error_history] = jacobi_iteration(A, b, x0, max_iter, tol)
+        % 使用矩阵形式的Jacobi迭代法求解线性方程组 Ax = b
+        %
+        % 输入:
+        %   A - 系数矩阵 (n x n)
+        %   b - 右端向量 (n x 1)
+        %   x0 - 初始猜测向量 (n x 1)
+        %   max_iter - 最大迭代次数 (默认: 1000)
+        %   tol - 容差 (默认: 1e-6)
+        %
+        % 输出:
+        %   x - 数值解
+        %   iter - 实际迭代次数
+        %   error_history - 每次迭代的误差历史
+
+        if nargin < 4
+            max_iter = 1000;
+        end
+        if nargin < 5
+            tol = 1e-6;
+        end
+        
+        n = length(b);
+        x = x0;
+        error_history = zeros(max_iter, 1);
+        
+        % 提取对角矩阵D
+        D = diag(diag(A));
+        
+        % 计算迭代矩阵 R = I - D^(-1)A 和向量 g = D^(-1)b
+        R = eye(n) - D \ A;
+        g = D \ b;
+        
+        for iter = 1:max_iter
+            % Jacobi迭代: x(k) = R * x(k-1) + g
+            x_new = R * x + g;
+            
+            % 计算相对误差
+            error = norm(x_new - x, inf) / norm(x_new, inf);
+            error_history(iter) = error;
+            
+            % 更新解
+            x = x_new;
+            
+            % 检查收敛
+            if error < tol
+                break;
+            end
+        end
+        
+        % 截断误差历史数组
+        error_history = error_history(1:iter);
+    end
+\end{lstlisting}
+
 \subsection{Gauss-Seidel迭代}
 
 设线性方程组 $Ax = b$，其中 $A = (a_{ij}) \in \mathbb{R}^{n \times n}$，且 $a_{ii} \neq 0, (i = 1, 2, \dots, n)$。
@@ -517,22 +574,413 @@ e^{(k)} = -(D + L)^{-1}U e^{(k-1)}
 \begin{theorem}
     若 $A$ 对称正定，则 Gauss-Seidel 迭代收敛。
 \begin{proof}
-由于 $A$ 对称正定，$D$ 正定，$L$ 和 $U$ 满足 $U = L^T$。
+为定理\;\ref{theorem_sor_convergence}的特例。
+\end{proof}
+\end{theorem}
 
-设 $\lambda$ 为 $G$ 的特征值，$x$ 为对应特征向量，则：
+\begin{lstlisting}[caption={gauss\_seidel\_iteration.m}]
+    function [x, iter, error_history] = gauss_seidel_iteration(A, b, x0, max_iter, tol)
+        % 使用矩阵形式的Gauss-Seidel迭代法求解线性方程组 Ax = b
+        %
+        % 输入:
+        %   A - 系数矩阵 (n x n)
+        %   b - 右端向量 (n x 1)
+        %   x0 - 初始猜测向量 (n x 1)
+        %   max_iter - 最大迭代次数 (默认: 1000)
+        %   tol - 容差 (默认: 1e-6)
+        %
+        % 输出:
+        %   x - 数值解
+        %   iter - 实际迭代次数
+        %   error_history - 每次迭代的误差历史
+
+        if nargin < 4
+            max_iter = 1000;
+        end
+        if nargin < 5
+            tol = 1e-6;
+        end
+        
+        n = length(b);
+        x = x0;
+        error_history = zeros(max_iter, 1);
+        
+        % 矩阵分解: A = D + L + U
+        D = diag(diag(A));          % 对角部分
+        L = tril(A, -1);           % 严格下三角部分
+        U = triu(A, 1);            % 严格上三角部分
+        
+        % 计算迭代矩阵 G = -(D+L)^(-1)U 和向量 g = (D+L)^(-1)b
+        % 注意: 实际计算中避免直接求逆，使用前向替换
+        D_sum_L = D + L;
+        
+        for iter = 1:max_iter
+            x_old = x;
+            
+            % Gauss-Seidel迭代: (D+L)x(k) = -Ux(k-1) + b
+            % 使用前向替换求解 (D+L)x(k) = b - U*x_old
+            
+            rhs = b - U * x_old;
+            
+            % 前向替换求解下三角系统
+            x = zeros(n, 1);
+            for i = 1:n
+                x(i) = (rhs(i) - D_sum_L(i, 1:i-1) * x(1:i-1)) / D_sum_L(i, i);
+            end
+            
+            % 计算相对误差
+            error = norm(x - x_old, inf) / norm(x, inf);
+            error_history(iter) = error;
+            
+            % 检查收敛
+            if error < tol
+                break;
+            end
+        end
+        
+        % 截断误差历史数组
+        error_history = error_history(1:iter);
+    end
+\end{lstlisting}
+
+\subsection{松弛迭代}
+
+设线性方程组 $Ax = b$，其中 $A = (a_{ij}) \in \mathbb{R}^{n \times n}$，且 $a_{ii} \neq 0, (i = 1, 2, \dots, n)$。
+
+将 $A$ 分解为：
+\[
+A = D + L + U
+\]
+其中：
+\begin{itemize}
+    \item $D = \text{diag}(a_{11}, a_{22}, \dots, a_{nn})$ 为对角矩阵
+    \item $L$ 为严格下三角部分
+    \item $U$ 为严格上三角部分
+\end{itemize}
+
+松弛迭代法的迭代格式为：
+\begin{enumerate}
+    \item 矩阵形式为：
 \begin{gather*}
-Gx = \lambda x \Rightarrow -(D + L)^{-1}Ux = \lambda x \Rightarrow -Ux = \lambda(D + L)x
+x^{(k)} = (1-\omega)x^{(k-1)}+\omega(-D^{-1}Lx^{(k)} -D^{-1}Ux^{(k-1)} + D ^{-1}b), \quad k = 1, 2, \dots\\
+\text{记}\quad \tilde{L}=-D^{-1}L,\quad \tilde{U}=-D^{-1}U,\quad g=D^{-1}b\\
+x^{(k)} = (1-\omega)I x^{(k-1)} + \omega( \tilde{L} x^{(k)} +  \tilde{U} x^{(k-1)} +  g)\\
+\text{记}\quad L_\omega = (I+\omega \tilde{L})^{-1}[(1-\omega)I + \omega \tilde{U}],\quad g_\omega = \omega (I+\omega \tilde{L})^{-1}g\\
+x^{(k)} = L_\omega x^{(k-1)} + g_\omega
+\end{gather*}
+
+\item 分量形式为：
+\begin{gather*}
+x_i^{(k)} = (1 - \omega)x_i^{(k-1)} + \frac{\omega}{a_{ii}} \left( b_i - \sum_{j=1}^{i-1} a_{ij}x_j^{(k)} - \sum_{j=i+1}^{n} a_{ij}x_j^{(k-1)} \right), \quad i = 1, 2, \dots, n
+\end{gather*}
+\end{enumerate}
+
+其中 $\omega > 0$ 为松弛因子：
+\begin{itemize}
+    \item 当 $0 < \omega < 1$ 时，称为欠松弛方法
+    \item 当 $\omega = 1$ 时，即为 Gauss-Seidel 迭代
+    \item 当 $1 < \omega < 2$ 时，称为超松弛方法（SOR）
+\end{itemize}
+
+迭代收敛的充分必要条件是：
+\[
+\rho(L_\omega) < 1
+\]
+其中 $\rho(L_\omega)$ 是松弛迭代矩阵的谱半径。
+
+\begin{theorem}
+    对任意矩阵 $A$，SOR 迭代收敛的必要条件是：
+    \[
+    0 < \omega < 2
+    \]
+\begin{proof}
+设 $L_\omega$ 的特征值为 $\lambda_1, \lambda_2, \dots, \lambda_n$，则：
+\begin{gather*}
+\det(L_\omega) = \prod_{i=1}^n \lambda_i = \det[(D + \omega L)^{-1}]\det[(1 - \omega)D - \omega U]
+\end{gather*}
+
+由于 $D + \omega L$ 和 $(1 - \omega)D - \omega U$ 都是三角矩阵，有：
+\begin{gather*}
+\det(L_\omega) = \frac{\prod_{i=1}^n [(1 - \omega)a_{ii}]}{\prod_{i=1}^n a_{ii}} = (1 - \omega)^n
+\end{gather*}
+
+因此：
+\begin{gather*}
+|\det(L_\omega)| = |1 - \omega|^n = \left|\prod_{i=1}^n \lambda_i\right| \leq [\rho(L_\omega)]^n
+\end{gather*}
+
+若迭代收敛，则 $\rho(L_\omega) < 1$，故 $|1 - \omega| < 1$，即 $0 < \omega < 2$。
+\end{proof}
+\end{theorem}
+
+\begin{theorem}
+    \label{theorem_sor_convergence}
+    若 $A$ 对称正定，且 $0 < \omega < 2$，则 SOR 迭代收敛。
+\begin{proof}
+设 $\lambda$ 为 $L_\omega$ 的特征值，$x$ 为对应特征向量，则：
+\begin{gather*}
+L_\omega x = \lambda x \Rightarrow (D + \omega L)^{-1}[(1 - \omega)D - \omega U]x = \lambda x
+\end{gather*}
+
+整理得：
+\begin{gather*}
+[(1 - \omega)D - \omega U]x = \lambda(D + \omega L)x
 \end{gather*}
 
 考虑二次型：
 \begin{gather*}
-x^H Ax = x^H (D + L + U)x = x^H (D + L - \lambda(D + L))x \\
-= (1 - \lambda)x^H (D + L)x
+x^H [(1 - \omega)D - \omega U]x = \lambda x^H (D + \omega L)x
 \end{gather*}
 
-由于 $A$ 正定，$x^H Ax > 0$，且 $D + L$ 正定，故 $|\lambda| < 1$，即 $\rho(G) < 1$。
+由于 $A$ 对称正定，$U = L^T$，令：
+\begin{gather*}
+x^H Dx = \alpha> 0,\quad x^H Lx=\beta+i\gamma
+\end{gather*}
+
+则原式可写为：
+\begin{gather*}
+(1 - \omega)\alpha - \omega (\beta-i\gamma )= \lambda(\alpha + \omega (\beta+i\gamma))
+\Leftrightarrow
+\lambda = \frac{(1 - \omega)\alpha - \omega(\beta-i\gamma)}{\alpha + \omega (\beta+i\gamma)}\\
+\Rightarrow |\lambda|^2=\frac{[(1 - \omega)\alpha - \omega \beta]^2 + (\omega \gamma)^2}{(\alpha + \omega \beta)^2 + (\omega \gamma)^2}\\
+\because \text{分子-分母}=\underbrace{((2-\omega)\alpha)}_{>0}\underbrace{(-\omega \alpha-2\omega \beta)}_{<0} <0,\quad
+\therefore |\lambda|^2 <1,\text{对}\forall \lambda \Rightarrow \rho(L_\omega) <1
+\end{gather*}
 \end{proof}
 \end{theorem}
+
+\begin{lstlisting}[caption={sor\_iteration.m}]
+    function [x, iter, error_history] = sor_iteration(A, b, x0, omega, max_iter, tol)
+        % 使用矩阵形式的松弛迭代法(SOR)求解线性方程组 Ax = b
+        %
+        % 输入:
+        %   A - 系数矩阵 (n x n)
+        %   b - 右端向量 (n x 1)
+        %   x0 - 初始猜测向量 (n x 1)
+        %   omega - 松弛因子 (0 < omega < 2，默认: 1)
+        %   max_iter - 最大迭代次数 (默认: 1000)
+        %   tol - 容差 (默认: 1e-6)
+        %
+        % 输出:
+        %   x - 数值解
+        %   iter - 实际迭代次数
+        %   error_history - 每次迭代的误差历史
+
+        if nargin < 4
+            omega = 1;
+        end
+        if nargin < 5
+            max_iter = 1000;
+        end
+        if nargin < 6
+            tol = 1e-6;
+        end
+
+        % 检查松弛因子范围
+        if omega <= 0 || omega >= 2
+            warning('松弛因子应在区间 (0, 2) 内，当前值: %f', omega);
+        end
+
+        n = length(b);
+        x = x0;
+        error_history = zeros(max_iter,1);
+        
+        % 矩阵分解: A = D + L + U
+        D = diag(diag(A));         % 对角部分
+        L = tril(A, -1);           % 严格下三角部分
+        U = triu(A, 1);            % 严格上三角部分
+
+
+        for iter = 1:max_iter
+            x_old = x;
+            
+            % SOR迭代: (D + \%*\(\mathcolor{green!50!black}{\omega}\)*)L)x(k) = [(1-\%*\(\mathcolor{green!50!black}{\omega}\)*))D - \%*\(\mathcolor{green!50!black}{\omega}\)*)U]x(k-1) + \%*\(\mathcolor{green!50!black}{\omega}\)*)b
+            rhs = ((1-omega)*D - omega*U) * x_old + omega * b;
+            
+            % (D + \%*\(\mathcolor{green!50!black}{\omega}\)*)L) 为下三角方阵，回代法直接求解 (D + \%*\(\mathcolor{green!50!black}{\omega}\)*)L)x = rhs
+            x = zeros(n, 1);
+            for i = 1:n
+                x(i) = (rhs(i) - omega * L(i, 1:i-1) * x(1:i-1)) / (D(i,i) + omega * L(i,i));
+            end
+
+            % 计算相对误差
+            error = norm(x - x_old, inf) / norm(x, inf);
+            error_history(iter) = error;
+            
+            % 检查收敛
+            if error < tol
+                break;
+            end
+        end
+
+        % 截断误差历史数组
+        error_history = error_history(1:iter);
+    end
+\end{lstlisting}
+
+\subsection{经典迭代格式的统一}
+\begin{enumerate}
+    \item 可逆方阵\(\tilde{A}\approx A\text{，且}\tilde{A}x=\tilde{b}\text{容易求解，则}\)
+    \[Ax = b \quad\Leftrightarrow \quad \tilde{A}x=(\tilde{A}-A)x+b \quad\Leftrightarrow\quad 
+    x^{(k+1)}=\tilde{A}^{-1}\left((\tilde{A}-A)x^{(k)}+b\right)\]
+    \item 选取矩阵\(C\)，使得\[
+    Ax^{(k+1)}-b=(I-AC)(Ax^{(k)}-b)\quad\Leftrightarrow\quad x^{(k+1)}=(I-CA)Ax^{(k)}+Cb\]
+\end{enumerate}
+
+\begin{theorem}
+    \(\|I-AC\|\le r<1\)（\(r\)是常数）时迭代收敛，\(\|I-CA\|\le r<1\)（\(r\)是常数）时迭代也收敛。
+    \begin{proof}
+\[
+\|(Ax^{(k)}-b)\| = \|(I-AC)^k (Ax^{(0)}-b)\| \leq \|I-CA\|^k \|(Ax^{(0)}-b)
+\]
+
+由于 $\|I-AC\|\le r<1$，因此当 $k \to \infty$ 时，迭代收敛。
+
+\begin{gather*}
+    A(I-CA)A^{-1}=I-AC\\
+    \begin{aligned}
+        \|(Ax^{(k)}-b)\| &= \|A(I-CA)A^{-1}(Ax^{(k-1)}-b)\|=\|A(I-CA)^{(k)}A^{-1}(Ax^{(0)}-b)\|\\
+        &\le r^k cond(A)  \|Ax^{(0)}-b\|
+    \end{aligned}
+\end{gather*}
+由于 $\|I-CA\|\le r<1$，因此当 $k \to \infty$ 时，迭代收敛。
+    \end{proof}
+\end{theorem}
+
+\section{求解线性方程组的直接法}
+\subsection{Gauss消元法}
+\subsubsection{Gauss消元法}
+Gauss消元法通过初等行变换将系数矩阵化为上三角矩阵，然后回代求解。
+
+设线性方程组 $Ax = b$，其中 $A \in \mathbb{R}^{n \times n}$，$b \in \mathbb{R}^{n}$。
+\begin{enumerate}
+    \item \textbf{构造增广矩阵}：
+    \[
+    [A|b] = \begin{bmatrix}
+    a_{11} & a_{12} & \cdots & a_{1n} & | & b_1 \\
+    a_{21} & a_{22} & \cdots & a_{2n} & | & b_2 \\
+    \vdots & \vdots & \ddots & \vdots & | & \vdots \\
+    a_{n1} & a_{n2} & \cdots & a_{nn} & | & b_n
+    \end{bmatrix}
+    \]
+    
+    \item \textbf{前向消元}：对 $k = 1, 2, \ldots, n-1$
+    \begin{itemize}
+        \item 选取主元 $a_{kk}$（Gauss列主元消元法中，必要时进行行交换）
+        \item 对 $i = k+1, \ldots, n$，计算乘数：
+        \[
+        m_{ik} = \frac{a_{ik}}{a_{kk}}
+        \]
+        \item 对 $j = k, \ldots, n+1$（包括右端项）：
+        \[
+        a_{ij} \leftarrow a_{ij} - m_{ik}a_{kj}
+        \]
+    \end{itemize}
+    
+    消元过程可表示为矩阵乘法：
+    \[
+    M_k A^{(k)} = A^{(k+1)}
+    \]
+    其中
+    \[
+    M_k = \begin{bmatrix}
+    1 & & & & \\
+    & \ddots & & & \\
+    & & 1 & & \\
+    & & -m_{k+1,k} & 1 & \\
+    & & \vdots & & \ddots \\
+    & & -m_{n,k} & & & 1
+    \end{bmatrix}
+    \]
+    
+    \item \textbf{回代求解}：
+    \begin{align*}
+    x_n &= \frac{b_n}{a_{nn}} \\
+    x_k &= \frac{b_k - \sum_{j=k+1}^n a_{kj}x_j}{a_{kk}}, \quad k = n-1, n-2, \ldots, 1
+    \end{align*}
+\end{enumerate}
+
+
+\subsubsection{Gauss-Jordan消元法}
+Gauss-Jordan消元法通过初等行变换将系数矩阵化为对角矩阵，直接求解。
+
+设线性方程组 $Ax = b$，构造增广矩阵：
+\[
+[A|b] = \begin{bmatrix}
+a_{11} & a_{12} & \cdots & a_{1n} & | & b_1 \\
+a_{21} & a_{22} & \cdots & a_{2n} & | & b_2 \\
+\vdots & \vdots & \ddots & \vdots & | & \vdots \\
+a_{n1} & a_{n2} & \cdots & a_{nn} & | & b_n
+\end{bmatrix}
+\]
+
+\subsubsection{阶段一：前向消元（化为上三角形）}
+
+对 $k = 1, 2, \ldots, n-1$：
+\begin{align*}
+&\text{对 } i = k+1, \ldots, n: \\
+&\quad m_{ik} = \frac{a_{ik}}{a_{kk}} \\
+&\quad \text{对 } j = k+1, \ldots, n: \\
+&\quad\quad a_{ij} \leftarrow a_{ij} - m_{ik} \cdot a_{kj} \\
+&\quad b_i \leftarrow b_i - m_{ik} \cdot b_k
+\end{align*}
+
+矩阵形式表示为：
+\[
+M_k A^{(k)} = A^{(k+1)}, \quad M_k b^{(k)} = b^{(k+1)}
+\]
+其中
+\[
+M_k = \begin{bmatrix}
+1 & & & & \\
+& \ddots & & & \\
+& & 1 & & \\
+& & -m_{k+1,k} & 1 & \\
+& & \vdots & & \ddots \\
+& & -m_{n,k} & & & 1
+\end{bmatrix}
+\]
+
+\subsubsection{阶段二：反向消元（化为对角形）}
+
+对 $i = n, n-1, \ldots, 1$：
+\begin{align*}
+&b_i \leftarrow \frac{b_i}{a_{ii}} \\
+&\text{对 } j = 1, 2, \ldots, i-1: \\
+&\quad b_j \leftarrow b_j - a_{ji} \cdot b_i
+\end{align*}
+
+矩阵形式表示为经过一系列初等行变换后，增广矩阵变为：
+\[
+[D|b'] = \begin{bmatrix}
+a_{11} & 0 & \cdots & 0 & | & b'_1 \\
+0 & a_{22} & \cdots & 0 & | & b'_2 \\
+\vdots & \vdots & \ddots & \vdots & | & \vdots \\
+0 & 0 & \cdots & a_{nn} & | & b'_n
+\end{bmatrix}
+\]
+
+\subsection{解的形式}
+最终解向量为：
+\[
+x = \begin{bmatrix}
+b'_1 \\ b'_2 \\ \vdots \\ b'_n
+\end{bmatrix}
+\]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

@@ -46,9 +46,10 @@ breaklinks=true]{hyperref}
     numbers=left,                     % 显示行号
     numbersep=-15pt,                  % 行号与代码间距
     numberstyle=\ttfamily\footnotesize\color{black}, % 行号正体
-    aboveskip=-1pt,                   % 减小上方间距
-    belowskip=-1pt,                   % 减小下方间距
+    aboveskip=-5pt,                   % 减小上方间距
+    belowskip=-5pt,                   % 减小下方间距
     columns=fixed,                    % 固定字符宽度
+    escapeinside={\%*}{*)},           % 定义转义分隔符
     literate=                         % 确保数字和注释符号使用正体
       {0}{{\ttfamily 0}}1
       {1}{{\ttfamily 1}}1
